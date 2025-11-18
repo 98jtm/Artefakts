@@ -4,6 +4,8 @@
 
 Mit dem Tool sollen automatisch nach der Eingabe Bingo-Karten erstellt werden. Diese können anschließend als eine gesammelte PDF heruntergeladen werden und so für die Weihnachtsfeier gedruckt werden.
 
+![alt text](image.jpg)
+
 ## ToDo's
  1. Seitenzahlen unten entfernen.
  2. Schriftgröße und Antwortverteilung im Feld anpassen
