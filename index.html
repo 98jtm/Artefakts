@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Weihnachtlicher Bingo-Karten Generator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+    }
+  </style>
+</head>
+<body class="bg-gradient-to-b from-red-50 via-white to-green-50 min-h-screen p-8">
+  <div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="text-center mb-8">
+      <h1 class="text-5xl font-bold text-red-700 mb-2">
+        🎄 Bingo-Karten Generator 🎄
+      </h1>
+      <p class="text-gray-600">Erstelle personalisierte Bingo-Karten mit weihnachtlichem Flair</p>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-8">
+      <!-- Eingabe-Bereich -->
+      <div class="bg-white rounded-2xl shadow-lg p-6 border-2 border-red-100">
+        <h2 class="text-2xl font-bold text-red-700 mb-4">📝 Antworten eingeben</h2>
+        
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Manuelle Eingabe (eine Antwort pro Zeile)
+          </label>
+          <textarea
+            id="answersInput"
+            class="w-full h-48 p-3 border-2 border-gray-300 rounded-lg focus:border-red-400 focus:ring focus:ring-red-200 transition"
+            placeholder="Geschenke auspacken
+Weihnachtslieder singen
+Plätzchen backen
+Tannenbaum schmücken
+Glühwein trinken
+..."
+          ></textarea>
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Oder Datei hochladen (CSV/TXT)
+          </label>
+          <label class="flex items-center justify-center gap-2 w-full p-4 border-2 border-dashed border-gray-300 rounded-lg hover:border-red-400 cursor-pointer transition bg-gray-50 hover:bg-red-50">
+            <span class="text-gray-600">📁 Datei auswählen</span>
+            <input
+              type="file"
+              id="fileInput"
+              accept=".txt,.csv"
+              class="hidden"
+            />
+          </label>
+        </div>
+
+        <div class="bg-green-50 rounded-lg p-3 border border-green-200">
+          <p class="text-sm text-green-800">
+            <strong id="answerCount">0</strong> Antworten gefunden
+          </p>
+        </div>
+      </div>
+
+      <!-- Konfigurations-Bereich -->
+      <div class="bg-white rounded-2xl shadow-lg p-6 border-2 border-green-100">
+        <h2 class="text-2xl font-bold text-green-700 mb-4">⚙️ Konfiguration</h2>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Kartengröße
+          </label>
+          <div class="flex gap-2">
+            <button onclick="setGridSize(3)" id="size-3" class="flex-1 py-3 rounded-lg font-semibold transition bg-gray-100 text-gray-700 hover:bg-gray-200">
+              3×3
+            </button>
+            <button onclick="setGridSize(4)" id="size-4" class="flex-1 py-3 rounded-lg font-semibold transition bg-gray-100 text-gray-700 hover:bg-gray-200">
+              4×4
+            </button>
+            <button onclick="setGridSize(5)" id="size-5" class="flex-1 py-3 rounded-lg font-semibold transition bg-green-600 text-white shadow-lg">
+              5×5
+            </button>
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Anzahl der Karten
+          </label>
+          <input
+            type="number"
+            id="numCards"
+            min="1"
+            max="50"
+            value="4"
+            class="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-green-400 focus:ring focus:ring-green-200"
+          />
+        </div>
+
+        <div class="mb-6">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              id="freeSpace"
+              checked
+              class="w-5 h-5 text-green-600 rounded focus:ring-green-500"
+            />
+            <span class="text-sm font-medium text-gray-700">
+              Freies Feld in der Mitte (nur bei ungerader Größe)
+            </span>
+          </label>
+        </div>
+
+        <button
+          onclick="generateCards()"
+          id="generateBtn"
+          class="w-full bg-gradient-to-r from-red-600 to-green-600 text-white py-4 rounded-lg font-bold text-lg hover:from-red-700 hover:to-green-700 transition shadow-lg"
+        >
+          ✨ Karten generieren
+        </button>
+      </div>
+    </div>
+
+    <!-- Vorschau-Bereich -->
+    <div id="previewSection" class="mt-8 hidden">
+      <div class="bg-white rounded-2xl shadow-lg p-6 border-2 border-yellow-100">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <h2 class="text-2xl font-bold text-yellow-700">
+            Vorschau (<span id="cardCount">0</span> Karten)
+          </h2>
+          <button
+            onclick="downloadPDF()"
+            id="downloadBtn"
+            class="flex items-center gap-2 bg-red-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-red-700 transition shadow-lg"
+          >
+            📥 Als PDF herunterladen
+          </button>
+        </div>
+
+        <div id="previewCards" class="grid md:grid-cols-2 gap-6"></div>
+        
+        <p id="moreCardsText" class="text-center text-gray-600 mt-4 text-sm hidden"></p>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  
+  <script>
+    let answerList = [];
+    let cards = [];
+    let gridSize = 5;
+
+    // Datei-Upload Handler
+    document.getElementById('fileInput').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          const text = event.target.result;
+          document.getElementById('answersInput').value = text;
+          updateAnswerList();
+        };
+        reader.readAsText(file);
+      }
+    });
+
+    // Text-Input Handler
+    document.getElementById('answersInput').addEventListener('input', updateAnswerList);
+
+    function updateAnswerList() {
+      const text = document.getElementById('answersInput').value;
+      answerList = text
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line.length > 0);
+      
+      document.getElementById('answerCount').textContent = answerList.length;
+    }
+
+    function setGridSize(size) {
+      gridSize = size;
+      
+      // Update buttons
+      [3, 4, 5].forEach(s => {
+        const btn = document.getElementById(`size-${s}`);
+        if (s === size) {
+          btn.className = 'flex-1 py-3 rounded-lg font-semibold transition bg-green-600 text-white shadow-lg';
+        } else {
+          btn.className = 'flex-1 py-3 rounded-lg font-semibold transition bg-gray-100 text-gray-700 hover:bg-gray-200';
+        }
+      });
+    }
+
+    function shuffleArray(array) {
+      const shuffled = [...array];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      return shuffled;
+    }
+
+    function generateCards() {
+      const freeSpace = document.getElementById('freeSpace').checked;
+      const numCards = parseInt(document.getElementById('numCards').value) || 4;
+      const requiredAnswers = gridSize * gridSize - (freeSpace && gridSize % 2 === 1 ? 1 : 0);
+      
+      if (answerList.length < requiredAnswers) {
+        alert(`Du benötigst mindestens ${requiredAnswers} Antworten für ${gridSize}×${gridSize} Karten${freeSpace && gridSize % 2 === 1 ? ' (mit freiem Feld)' : ''}.`);
+        return;
+      }
+
+      cards = [];
+      for (let i = 0; i < numCards; i++) {
+        const shuffled = shuffleArray(answerList);
+        const cardAnswers = shuffled.slice(0, requiredAnswers);
+        
+        if (freeSpace && gridSize % 2 === 1) {
+          const middle = Math.floor(cardAnswers.length / 2);
+          cardAnswers.splice(middle, 0, 'FREI');
+        }
+        
+        cards.push(cardAnswers);
+      }
+
+      displayPreview();
+    }
+
+    function displayPreview() {
+      const previewSection = document.getElementById('previewSection');
+      const previewCards = document.getElementById('previewCards');
+      const cardCount = document.getElementById('cardCount');
+      const moreCardsText = document.getElementById('moreCardsText');
+
+      previewSection.classList.remove('hidden');
+      cardCount.textContent = cards.length;
+      previewCards.innerHTML = '';
+
+      cards.slice(0, 4).forEach((card, index) => {
+        const cardDiv = document.createElement('div');
+        cardDiv.className = 'border-4 border-red-200 rounded-xl p-4 bg-gradient-to-br from-red-50 to-green-50';
+        
+        let cellsHTML = '';
+        card.forEach(answer => {
+          const isFree = answer === 'FREI';
+          cellsHTML += `
+            <div class="aspect-square flex items-center justify-center text-center p-1 border-2 border-red-300 rounded text-xs font-medium ${
+              isFree ? 'bg-green-100 text-green-700 border-green-400 font-bold' : 'bg-white text-gray-800'
+            }">
+              ${isFree ? '★ FREI ★' : answer}
+            </div>
+          `;
+        });
+
+        cardDiv.innerHTML = `
+          <div class="text-center mb-3">
+            <h3 class="text-2xl font-bold text-red-700">🎄 BINGO 🎄</h3>
+            <p class="text-xs text-gray-500">Karte ${index + 1}</p>
+          </div>
+          <div class="grid gap-1" style="grid-template-columns: repeat(${gridSize}, 1fr);">
+            ${cellsHTML}
+          </div>
+        `;
+
+        previewCards.appendChild(cardDiv);
+      });
+
+      if (cards.length > 4) {
+        moreCardsText.textContent = `... und ${cards.length - 4} weitere Karten (siehe PDF)`;
+        moreCardsText.classList.remove('hidden');
+      } else {
+        moreCardsText.classList.add('hidden');
+      }
+    }
+
+    function downloadPDF() {
+      if (!window.jspdf) {
+        alert('PDF-Bibliothek lädt noch. Bitte einen Moment warten und erneut versuchen.');
+        return;
+      }
+
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF();
+
+      cards.forEach((card, cardIndex) => {
+        if (cardIndex > 0) {
+          pdf.addPage();
+        }
+
+        // Titel
+        pdf.setFontSize(28);
+        pdf.setTextColor(165, 42, 42);
+        pdf.text('BINGO', 105, 25, { align: 'center' });
+
+        // Grid
+        const margin = 20;
+        const gridWidth = 170;
+        const cellSize = gridWidth / gridSize;
+        const startX = margin;
+        const startY = 45;
+
+        // Äußerer Rahmen
+        pdf.setDrawColor(165, 42, 42);
+        pdf.setLineWidth(1.5);
+        pdf.rect(startX, startY, gridWidth, gridWidth);
+
+        // Zellen
+        for (let row = 0; row < gridSize; row++) {
+          for (let col = 0; col < gridSize; col++) {
+            const x = startX + col * cellSize;
+            const y = startY + row * cellSize;
