@@ -78,6 +78,10 @@
       border-color: #fef08a;
     }
     
+    .card-blue {
+      border-color: #bfdbfe;
+    }
+    
     .card-title {
       font-size: 1.5rem;
       font-weight: bold;
@@ -97,6 +101,10 @@
     
     .card-title-yellow {
       color: #a16207;
+    }
+    
+    .card-title-blue {
+      color: #1e40af;
     }
     
     label {
@@ -148,6 +156,11 @@
       background: #fef2f2;
     }
     
+    .file-upload.pdf-upload:hover {
+      border-color: #3b82f6;
+      background: #eff6ff;
+    }
+    
     .file-upload span {
       color: #6b7280;
       font-weight: 500;
@@ -163,6 +176,19 @@
     .answer-count p {
       font-size: 0.875rem;
       color: #166534;
+      font-weight: 600;
+    }
+    
+    .pdf-status {
+      background: linear-gradient(to right, #eff6ff, #dbeafe);
+      padding: 0.75rem;
+      border-radius: 0.5rem;
+      border: 1px solid #93c5fd;
+    }
+    
+    .pdf-status p {
+      font-size: 0.875rem;
+      color: #1e40af;
       font-weight: 600;
     }
     
@@ -281,9 +307,14 @@
       transition: all 0.2s;
     }
     
-    .download-btn:hover {
+    .download-btn:hover:not(:disabled) {
       background: #b91c1c;
       transform: translateY(-1px);
+    }
+    
+    .download-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
     
     .preview-grid {
@@ -357,6 +388,20 @@
       margin-top: 1rem;
       font-size: 0.875rem;
     }
+    
+    .alert {
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem;
+      margin-bottom: 1rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+    
+    .alert-warning {
+      background: #fef3c7;
+      border: 1px solid #fbbf24;
+      color: #92400e;
+    }
   </style>
 </head>
 <body>
@@ -397,6 +442,32 @@ Glühwein trinken
         </div>
       </div>
 
+      <div class="card card-blue">
+        <h2 class="card-title card-title-blue">
+          <span>📄</span>
+          PDF-Vorlage
+        </h2>
+        
+        <div class="file-upload-wrapper">
+          <label>PDF-Hintergrund hochladen</label>
+          <label class="file-upload pdf-upload">
+            <span>📤</span>
+            <span>PDF auswählen</span>
+            <input type="file" id="pdfInput" accept=".pdf" style="display: none;">
+          </label>
+        </div>
+
+        <div class="pdf-status" id="pdfStatus">
+          <p id="pdfStatusText">❌ Keine PDF-Vorlage geladen</p>
+        </div>
+
+        <div id="pdfWarning" style="display: none;" class="alert alert-warning">
+          ⚠️ Bitte lade eine PDF-Vorlage hoch, um Karten mit Hintergrund zu generieren!
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2">
       <div class="card card-green">
         <h2 class="card-title card-title-green">
           <span>⚙️</span>
@@ -434,7 +505,7 @@ Glühwein trinken
           <h2 class="card-title card-title-yellow">
             Vorschau (<span id="cardCount">0</span> Karten)
           </h2>
-          <button class="download-btn" onclick="downloadPDF()">
+          <button class="download-btn" onclick="downloadPDF()" id="downloadBtn">
             <span>📥</span>
             Als PDF herunterladen
           </button>
@@ -451,6 +522,7 @@ Glühwein trinken
     let answerList = [];
     let cards = [];
     let gridSize = 5;
+    let pdfTemplate = null;
 
     document.getElementById('fileInput').addEventListener('change', function(e) {
       const file = e.target.files[0];
@@ -462,6 +534,19 @@ Glühwein trinken
           updateAnswerList();
         };
         reader.readAsText(file);
+      }
+    });
+
+    document.getElementById('pdfInput').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          pdfTemplate = event.target.result;
+          document.getElementById('pdfStatusText').textContent = `✅ PDF geladen: ${file.name}`;
+          document.getElementById('pdfWarning').style.display = 'none';
+        };
+        reader.readAsDataURL(file);
       }
     });
 
@@ -506,6 +591,11 @@ Glühwein trinken
       
       if (answerList.length < requiredAnswers) {
         alert(`Du benötigst mindestens ${requiredAnswers} Antworten für ${gridSize}×${gridSize} Karten${freeSpace && gridSize % 2 === 1 ? ' (mit freiem Feld)' : ''}.`);
+        return;
+      }
+
+      if (!pdfTemplate) {
+        document.getElementById('pdfWarning').style.display = 'block';
         return;
       }
 
@@ -570,34 +660,63 @@ Glühwein trinken
       }
     }
 
-    function downloadPDF() {
+    async function downloadPDF() {
       if (!window.jspdf) {
         alert('PDF-Bibliothek lädt noch. Bitte einen Moment warten und erneut versuchen.');
+        return;
+      }
+
+      if (!pdfTemplate) {
+        alert('Bitte lade zuerst eine PDF-Vorlage hoch!');
+        document.getElementById('pdfWarning').style.display = 'block';
         return;
       }
 
       const { jsPDF } = window.jspdf;
       const pdf = new jsPDF();
 
-      cards.forEach((card, cardIndex) => {
+      // Lade das Template PDF
+      const templatePdf = await fetch(pdfTemplate).then(res => res.arrayBuffer());
+
+      for (let cardIndex = 0; cardIndex < cards.length; cardIndex++) {
         if (cardIndex > 0) {
           pdf.addPage();
         }
 
-        pdf.setFontSize(28);
-        pdf.setTextColor(165, 42, 42);
-        pdf.text('BINGO', 105, 25, { align: 'center' });
+        // Füge PDF-Hintergrund hinzu
+        try {
+          const pdfData = await pdf.loadFile(pdfTemplate);
+          pdf.addImage(pdfData, 'PDF', 0, 0, 210, 297);
+        } catch (e) {
+          // Fallback: Versuche als Bild
+          pdf.addImage(pdfTemplate, 'PNG', 0, 0, 210, 297);
+        }
 
-        const margin = 20;
-        const gridWidth = 170;
+        const card = cards[cardIndex];
+        
+        // Position und Größe des Bingo-Felds
+        const startX = 25;  // 25mm von links
+        const startY = 90;  // 90mm von oben
+        const gridWidth = 160;  // 160mm breit
         const cellSize = gridWidth / gridSize;
-        const startX = margin;
-        const startY = 45;
 
-        pdf.setDrawColor(165, 42, 42);
-        pdf.setLineWidth(1.5);
-        pdf.rect(startX, startY, gridWidth, gridWidth);
+        // Zeichne nur die inneren Linien (hellgrau)
+        pdf.setDrawColor(200, 200, 200);  // Hellgrau
+        pdf.setLineWidth(0.3);
 
+        // Vertikale Linien
+        for (let i = 1; i < gridSize; i++) {
+          const x = startX + i * cellSize;
+          pdf.line(x, startY, x, startY + gridWidth);
+        }
+
+        // Horizontale Linien
+        for (let i = 1; i < gridSize; i++) {
+          const y = startY + i * cellSize;
+          pdf.line(startX, y, startX + gridWidth, y);
+        }
+
+        // Füge Text in Zellen ein
         for (let row = 0; row < gridSize; row++) {
           for (let col = 0; col < gridSize; col++) {
             const x = startX + col * cellSize;
@@ -605,16 +724,13 @@ Glühwein trinken
             const index = row * gridSize + col;
             const text = card[index] || '';
 
-            pdf.setLineWidth(0.5);
-            pdf.rect(x, y, cellSize, cellSize);
-
+            // Hintergrund für FREI
             if (text === 'FREI') {
               pdf.setFillColor(220, 240, 220);
-              pdf.rect(x + 0.5, y + 0.5, cellSize - 1, cellSize - 1, 'F');
-              pdf.setLineWidth(0.5);
-              pdf.rect(x, y, cellSize, cellSize);
+              pdf.roundedRect(x + 0.5, y + 0.5, cellSize - 1, cellSize - 1, 2, 2, 'F');
             }
 
+            // Text
             pdf.setTextColor(text === 'FREI' ? 34 : 0, text === 'FREI' ? 139 : 0, text === 'FREI' ? 34 : 0);
             const fontSize = Math.max(9, 16 - gridSize * 1.5);
             pdf.setFontSize(fontSize);
@@ -634,10 +750,11 @@ Glühwein trinken
           }
         }
 
+        // Fußzeile: X/XX
         pdf.setFontSize(10);
         pdf.setTextColor(100, 100, 100);
-        pdf.text(`Karte ${cardIndex + 1} von ${cards.length}`, 105, 280, { align: 'center' });
-      });
+        pdf.text(`${cardIndex + 1}/${cards.length}`, 105, 287, { align: 'center' });
+      }
 
       pdf.save('weihnachts-bingo-karten.pdf');
     }
