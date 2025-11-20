@@ -19,7 +19,7 @@ Mit dem Tool sollen automatisch nach der Eingabe Bingo-Karten erstellt werden. D
  - eine PDF mit der Anzahl der Blätter
  - ohne spezielles Layout
 
-### v02_jtm_2025-20-11.html
+### v02_jtm_2025-20-11.html (aktuell)
 **Updates:**
 - Uploadoption für Hintergrund-PDF
  - DIN-A4 Größe, Lage des Bingofeldes: 25mm v. links, 90mm v. oben, Größe 160x160 mm, Ausrundung der Ecken 17mm
