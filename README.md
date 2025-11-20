@@ -7,6 +7,14 @@ Mit dem Tool sollen automatisch nach der Eingabe Bingo-Karten erstellt werden. D
 
 ![Layout des Generators](images/Bingo_Gen.PNG)
 ---
+## Nutzung
+
+1. Antwortenliste manuell eingeben o. txt/csv hochladen
+2. Layout-Datei (PDF) einladen -> wird Hintergrund der Bingokarten (Beachte: Wenn neues Layout, muss dies den Maßen u. Lage des Bingofeldes entsprechen!)
+3. Anzahl der Bingofelder und Anzahl der zu generierenden Bingokarten eingeben.
+4. Bingokarten generierenden
+5. Bingokarten als PDF herunterladen (alle in einer Datei) -> Fertig !! :)
+---
 ## Versionsverlauf
 
 ### v01_jtm_2025-18-11.html
