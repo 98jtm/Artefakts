@@ -649,7 +649,7 @@ Glühwein trinken
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>
-    let answerList = [];
+let answerList = [];
     let cards = [];
     let gridSize = 5;
     let pdfTemplate = null;
@@ -899,4 +899,213 @@ Glühwein trinken
           break;
         }
       }
-      if (di
+      if (diag2Complete) return true;
+
+      return false;
+    }
+function simulateBingo() {
+      const results = {
+        cardWins: {},
+        timeline: []
+      };
+
+      // Initialisiere Markierungen für jede Karte
+      const cardMarks = cards.map(() => Array(gridSize * gridSize).fill(false));
+
+      // Markiere freie Felder
+      cards.forEach((card, cardIndex) => {
+        card.forEach((answer, cellIndex) => {
+          if (answer === 'FREI') {
+            cardMarks[cardIndex][cellIndex] = true;
+          }
+        });
+      });
+
+      // Simuliere jede Runde
+      roundsData.forEach((roundAnswers, roundIndex) => {
+        const roundNumber = roundIndex + 1;
+        const roundWinners = [];
+
+        // Markiere Antworten dieser Runde auf allen Karten
+        cards.forEach((card, cardIndex) => {
+          // Prüfe ob Karte bereits gewonnen hat
+          if (results.cardWins[cardIndex + 1]) return;
+
+          card.forEach((answer, cellIndex) => {
+            if (roundAnswers.includes(answer)) {
+              cardMarks[cardIndex][cellIndex] = true;
+            }
+          });
+
+          // Prüfe ob diese Karte jetzt Bingo hat
+          if (checkBingo(card, cardMarks[cardIndex])) {
+            if (!results.cardWins[cardIndex + 1]) {
+              results.cardWins[cardIndex + 1] = roundNumber;
+              roundWinners.push(cardIndex + 1);
+            }
+          }
+        });
+
+        results.timeline.push({
+          round: roundNumber,
+          answers: roundAnswers,
+          winners: roundWinners
+        });
+      });
+
+      simulationResults = results;
+      displaySimulationResults();
+    }
+
+    function displaySimulationResults() {
+      const simulationSection = document.getElementById('simulationSection');
+      const summaryTable = document.getElementById('summaryTable');
+      const timelineResults = document.getElementById('timelineResults');
+
+      simulationSection.classList.add('visible');
+
+      // Erstelle Übersichtstabelle
+      let tableHTML = '<table class="result-table"><thead><tr><th>Karte</th><th>Gewinnt in Runde</th></tr></thead><tbody>';
+      
+      for (let i = 1; i <= cards.length; i++) {
+        const winRound = simulationResults.cardWins[i];
+        tableHTML += `<tr><td>Karte ${i}</td><td>${winRound ? `Runde ${winRound}` : 'Kein Bingo'}</td></tr>`;
+      }
+      
+      tableHTML += '</tbody></table>';
+      summaryTable.innerHTML = tableHTML;
+
+      // Erstelle Timeline
+      let timelineHTML = '';
+      simulationResults.timeline.forEach(item => {
+        const hasBingo = item.winners.length > 0;
+        timelineHTML += `
+          <div class="timeline-item ${hasBingo ? 'has-bingo' : ''}">
+            <div style="font-weight: 600; margin-bottom: 0.25rem;">Runde ${item.round}</div>
+            <div style="font-size: 0.875rem; color: #6b7280; margin-bottom: 0.25rem;">
+              Gezogen: ${item.answers.join(', ')}
+            </div>
+            ${hasBingo ? `<div style="color: #15803d; font-weight: 600;">🎉 BINGO! Karte(n): ${item.winners.join(', ')}</div>` : ''}
+          </div>
+        `;
+      });
+
+      timelineResults.innerHTML = timelineHTML;
+    }
+
+    function downloadSimulationResults() {
+      if (!simulationResults) return;
+
+      let text = '=== BINGO SIMULATION ERGEBNISSE ===\n\n';
+      text += '--- ÜBERSICHT: WELCHE KARTE GEWINNT WANN ---\n\n';
+
+      for (let i = 1; i <= cards.length; i++) {
+        const winRound = simulationResults.cardWins[i];
+        text += `Karte ${i}: ${winRound ? `Runde ${winRound}` : 'Kein Bingo'}\n`;
+      }
+
+      text += '\n\n--- TIMELINE: WAS PASSIERT IN JEDER RUNDE ---\n\n';
+
+      simulationResults.timeline.forEach(item => {
+        text += `Runde ${item.round}:\n`;
+        text += `  Gezogen: ${item.answers.join(', ')}\n`;
+        if (item.winners.length > 0) {
+          text += `  🎉 BINGO! Karte(n): ${item.winners.join(', ')}\n`;
+        }
+        text += '\n';
+      });
+
+      // Download als TXT
+      const blob = new Blob([text], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'bingo-simulation-ergebnisse.txt';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function downloadPDF() {
+      if (!window.jspdf) {
+        alert('PDF-Bibliothek lädt noch. Bitte einen Moment warten und erneut versuchen.');
+        return;
+      }
+
+      if (!pdfTemplateImage) {
+        alert('Bitte lade zuerst eine PDF-Vorlage hoch!');
+        document.getElementById('pdfWarning').style.display = 'block';
+        return;
+      }
+
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF();
+
+      cards.forEach((card, cardIndex) => {
+        if (cardIndex > 0) {
+          pdf.addPage();
+        }
+
+        pdf.addImage(pdfTemplateImage, 'PNG', 0, 0, 210, 297);
+
+        const startX = 25;
+        const startY = 90;
+        const gridWidth = 160;
+        const gridHeight = 160;
+        const cellSize = gridWidth / gridSize;
+
+        pdf.setDrawColor(200, 200, 200);
+        pdf.setLineWidth(0.3);
+
+        for (let i = 1; i < gridSize; i++) {
+          const x = startX + i * cellSize;
+          pdf.line(x, startY, x, startY + gridHeight);
+        }
+
+        for (let i = 1; i < gridSize; i++) {
+          const y = startY + i * cellSize;
+          pdf.line(startX, y, startX + gridWidth, y);
+        }
+
+        for (let row = 0; row < gridSize; row++) {
+          for (let col = 0; col < gridSize; col++) {
+            const x = startX + col * cellSize;
+            const y = startY + row * cellSize;
+            const index = row * gridSize + col;
+            const text = card[index] || '';
+
+            if (text === 'FREI') {
+              pdf.setFillColor(220, 240, 220);
+              pdf.roundedRect(x + 1, y + 1, cellSize - 2, cellSize - 2, 3, 3, 'F');
+            }
+
+            pdf.setTextColor(text === 'FREI' ? 34 : 0, text === 'FREI' ? 139 : 0, text === 'FREI' ? 34 : 0);
+            const fontSize = Math.max(9, 16 - gridSize * 1.5);
+            pdf.setFontSize(fontSize);
+
+            const maxWidth = cellSize - 6;
+            const lines = pdf.splitTextToSize(text, maxWidth);
+            const lineHeight = fontSize * 0.4;
+            const totalHeight = lines.length * lineHeight;
+            const textStartY = y + (cellSize - totalHeight) / 2 + lineHeight;
+
+            lines.forEach((line, i) => {
+              pdf.text(line, x + cellSize / 2, textStartY + i * lineHeight, {
+                align: 'center',
+                maxWidth: maxWidth
+              });
+            });
+          }
+        }
+
+        pdf.setFontSize(10);
+        pdf.setTextColor(100, 100, 100);
+        pdf.text(`${cardIndex + 1}/${cards.length}`, 105, 287, { align: 'center' });
+      });
+
+      pdf.save('weihnachts-bingo-karten.pdf');
+    }
+  </script>
+</body>
+</html>    
