@@ -671,7 +671,7 @@ let answerList = [];
           document.getElementById('answersInput').value = text;
           updateAnswerList();
         };
-        reader.readAsText(file);
+        reader.readAsText(file, 'UTF-8');
       }
     });
 
@@ -728,7 +728,7 @@ let answerList = [];
           document.getElementById('roundsStatusText').textContent = `✅ ${roundsData.length} Runden geladen`;
           updateSimulateButton();
         };
-        reader.readAsText(file);
+        reader.readAsText(file, 'UTF-8');
       }
     });
 
@@ -1073,7 +1073,9 @@ function simulateBingo() {
             const x = startX + col * cellSize;
             const y = startY + row * cellSize;
             const index = row * gridSize + col;
-            const text = card[index] || '';
+            let text = card[index] || '';
+
+            text = text.replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss').replace(/Ä/g, 'Ae').replace(/Ö/g, 'Oe').replace(/Ü/g, 'Ue');
 
             if (text === 'FREI') {
               pdf.setFillColor(220, 240, 220);
