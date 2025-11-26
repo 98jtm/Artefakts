@@ -82,6 +82,10 @@
       border-color: #bfdbfe;
     }
     
+    .card-purple {
+      border-color: #e9d5ff;
+    }
+    
     .card-title {
       font-size: 1.5rem;
       font-weight: bold;
@@ -105,6 +109,10 @@
     
     .card-title-blue {
       color: #1e40af;
+    }
+    
+    .card-title-purple {
+      color: #7e22ce;
     }
     
     label {
@@ -161,6 +169,11 @@
       background: #eff6ff;
     }
     
+    .file-upload.rounds-upload:hover {
+      border-color: #7e22ce;
+      background: #faf5ff;
+    }
+    
     .file-upload span {
       color: #6b7280;
       font-weight: 500;
@@ -189,6 +202,19 @@
     .pdf-status p {
       font-size: 0.875rem;
       color: #1e40af;
+      font-weight: 600;
+    }
+    
+    .rounds-status {
+      background: linear-gradient(to right, #faf5ff, #f3e8ff);
+      padding: 0.75rem;
+      border-radius: 0.5rem;
+      border: 1px solid #d8b4fe;
+    }
+    
+    .rounds-status p {
+      font-size: 0.875rem;
+      color: #7e22ce;
       font-weight: 600;
     }
     
@@ -250,7 +276,7 @@
       cursor: pointer;
     }
     
-    .generate-btn {
+    .generate-btn, .simulate-btn {
       width: 100%;
       padding: 1rem;
       border: none;
@@ -258,10 +284,14 @@
       font-weight: bold;
       font-size: 1.125rem;
       cursor: pointer;
-      background: linear-gradient(to right, #dc2626, #16a34a);
       color: white;
       box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
       transition: all 0.2s;
+      margin-bottom: 0.5rem;
+    }
+    
+    .generate-btn {
+      background: linear-gradient(to right, #dc2626, #16a34a);
     }
     
     .generate-btn:hover:not(:disabled) {
@@ -269,16 +299,25 @@
       transform: translateY(-1px);
     }
     
-    .generate-btn:disabled {
+    .simulate-btn {
+      background: linear-gradient(to right, #7e22ce, #9333ea);
+    }
+    
+    .simulate-btn:hover:not(:disabled) {
+      background: linear-gradient(to right, #6b21a8, #7e22ce);
+      transform: translateY(-1px);
+    }
+    
+    .generate-btn:disabled, .simulate-btn:disabled {
       opacity: 0.5;
       cursor: not-allowed;
     }
     
-    .preview-section {
+    .preview-section, .simulation-section {
       display: none;
     }
     
-    .preview-section.visible {
+    .preview-section.visible, .simulation-section.visible {
       display: block;
     }
     
@@ -402,6 +441,51 @@
       border: 1px solid #fbbf24;
       color: #92400e;
     }
+    
+    .simulation-results {
+      margin-top: 1rem;
+    }
+    
+    .result-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 1.5rem;
+      font-size: 0.875rem;
+    }
+    
+    .result-table th,
+    .result-table td {
+      padding: 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .result-table th {
+      background: #f3f4f6;
+      font-weight: 600;
+      color: #374151;
+    }
+    
+    .result-table tr:hover {
+      background: #f9fafb;
+    }
+    
+    .timeline-item {
+      padding: 0.75rem;
+      margin-bottom: 0.5rem;
+      border-left: 4px solid #d1d5db;
+      background: #f9fafb;
+      border-radius: 0.25rem;
+    }
+    
+    .timeline-item.has-bingo {
+      border-left-color: #16a34a;
+      background: #f0fdf4;
+    }
+    
+    .timeline-item strong {
+      color: #15803d;
+    }
   </style>
 </head>
 <body>
@@ -464,6 +548,21 @@ Glühwein trinken
         <div id="pdfWarning" style="display: none;" class="alert alert-warning">
           ⚠️ Bitte lade eine PDF-Vorlage hoch, um Karten mit Hintergrund zu generieren!
         </div>
+
+        <hr style="margin: 1.5rem 0; border: none; border-top: 1px solid #e5e7eb;">
+
+        <div class="file-upload-wrapper">
+          <label>Runden-Datei hochladen (für Simulation)</label>
+          <label class="file-upload rounds-upload">
+            <span>🎯</span>
+            <span>CSV auswählen</span>
+            <input type="file" id="roundsInput" accept=".csv,.txt" style="display: none;">
+          </label>
+        </div>
+
+        <div class="rounds-status">
+          <p id="roundsStatusText">❌ Keine Runden-Datei geladen</p>
+        </div>
       </div>
     </div>
 
@@ -496,6 +595,10 @@ Glühwein trinken
         <button class="generate-btn" onclick="generateCards()">
           ✨ Karten generieren
         </button>
+
+        <button class="simulate-btn" onclick="simulateBingo()" id="simulateBtn" disabled>
+          🎯 Bingo Simulation starten
+        </button>
       </div>
     </div>
 
@@ -516,6 +619,32 @@ Glühwein trinken
         <p class="more-cards" id="moreCardsText" style="display: none;"></p>
       </div>
     </div>
+
+    <div class="simulation-section" id="simulationSection">
+      <div class="card card-purple">
+        <div class="preview-header">
+          <h2 class="card-title card-title-purple">
+            🎯 Simulation Ergebnisse
+          </h2>
+          <button class="download-btn" onclick="downloadSimulationResults()" style="background: #7e22ce;">
+            <span>📥</span>
+            Ergebnisse herunterladen
+          </button>
+        </div>
+
+        <div class="simulation-results">
+          <h3 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 1rem; color: #374151;">
+            📊 Übersicht: Welche Karte gewinnt wann
+          </h3>
+          <div id="summaryTable"></div>
+
+          <h3 style="font-size: 1.25rem; font-weight: bold; margin: 2rem 0 1rem; color: #374151;">
+            📅 Timeline: Was passiert in jeder Runde
+          </h3>
+          <div id="timelineResults"></div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -525,6 +654,8 @@ Glühwein trinken
     let gridSize = 5;
     let pdfTemplate = null;
     let pdfTemplateImage = null;
+    let roundsData = [];
+    let simulationResults = null;
 
     // PDF.js Worker Setup
     if (window.pdfjsLib) {
@@ -551,7 +682,6 @@ Glühwein trinken
         reader.onload = async function(event) {
           pdfTemplate = event.target.result;
           
-          // Konvertiere PDF zu Bild
           try {
             const loadingTask = pdfjsLib.getDocument({data: atob(pdfTemplate.split(',')[1])});
             const pdf = await loadingTask.promise;
@@ -583,6 +713,25 @@ Glühwein trinken
       }
     });
 
+    document.getElementById('roundsInput').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          const text = event.target.result;
+          roundsData = text
+            .split('\n')
+            .map(line => line.trim())
+            .filter(line => line.length > 0)
+            .map(line => line.split(';').map(item => item.trim()));
+          
+          document.getElementById('roundsStatusText').textContent = `✅ ${roundsData.length} Runden geladen`;
+          updateSimulateButton();
+        };
+        reader.readAsText(file);
+      }
+    });
+
     document.getElementById('answersInput').addEventListener('input', updateAnswerList);
 
     function updateAnswerList() {
@@ -606,6 +755,15 @@ Glühwein trinken
           btn.classList.remove('active');
         }
       });
+    }
+
+    function updateSimulateButton() {
+      const btn = document.getElementById('simulateBtn');
+      if (cards.length > 0 && roundsData.length > 0) {
+        btn.disabled = false;
+      } else {
+        btn.disabled = true;
+      }
     }
 
     function shuffleArray(array) {
@@ -646,6 +804,7 @@ Glühwein trinken
       }
 
       displayPreview();
+      updateSimulateButton();
     }
 
     function displayPreview() {
@@ -693,94 +852,51 @@ Glühwein trinken
       }
     }
 
-    function downloadPDF() {
-      if (!window.jspdf) {
-        alert('PDF-Bibliothek lädt noch. Bitte einen Moment warten und erneut versuchen.');
-        return;
-      }
-
-      if (!pdfTemplateImage) {
-        alert('Bitte lade zuerst eine PDF-Vorlage hoch!');
-        document.getElementById('pdfWarning').style.display = 'block';
-        return;
-      }
-
-      const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF();
-
-      cards.forEach((card, cardIndex) => {
-        if (cardIndex > 0) {
-          pdf.addPage();
-        }
-
-        // Füge PDF-Hintergrund als Bild hinzu (A4 Format)
-        pdf.addImage(pdfTemplateImage, 'PNG', 0, 0, 210, 297);
-
-        // Position und Größe des Bingo-Felds
-        const startX = 25;  // 25mm von links
-        const startY = 90;  // 90mm von oben
-        const gridWidth = 160;  // 160mm breit
-        const gridHeight = 160; // 160mm hoch
-        const cellSize = gridWidth / gridSize;
-
-        // Zeichne nur die inneren Linien (hellgrau)
-        pdf.setDrawColor(200, 200, 200);  // Hellgrau
-        pdf.setLineWidth(0.3);
-
-        // Vertikale Linien
-        for (let i = 1; i < gridSize; i++) {
-          const x = startX + i * cellSize;
-          pdf.line(x, startY, x, startY + gridHeight);
-        }
-
-        // Horizontale Linien
-        for (let i = 1; i < gridSize; i++) {
-          const y = startY + i * cellSize;
-          pdf.line(startX, y, startX + gridWidth, y);
-        }
-
-        // Füge Text in Zellen ein
-        for (let row = 0; row < gridSize; row++) {
-          for (let col = 0; col < gridSize; col++) {
-            const x = startX + col * cellSize;
-            const y = startY + row * cellSize;
-            const index = row * gridSize + col;
-            const text = card[index] || '';
-
-            // Hintergrund für FREI
-            if (text === 'FREI') {
-              pdf.setFillColor(220, 240, 220);
-              pdf.roundedRect(x + 1, y + 1, cellSize - 2, cellSize - 2, 3, 3, 'F');
-            }
-
-            // Text
-            pdf.setTextColor(text === 'FREI' ? 34 : 0, text === 'FREI' ? 139 : 0, text === 'FREI' ? 34 : 0);
-            const fontSize = Math.max(9, 16 - gridSize * 1.5);
-            pdf.setFontSize(fontSize);
-
-            const maxWidth = cellSize - 6;
-            const lines = pdf.splitTextToSize(text, maxWidth);
-            const lineHeight = fontSize * 0.4;
-            const totalHeight = lines.length * lineHeight;
-            const textStartY = y + (cellSize - totalHeight) / 2 + lineHeight;
-
-            lines.forEach((line, i) => {
-              pdf.text(line, x + cellSize / 2, textStartY + i * lineHeight, {
-                align: 'center',
-                maxWidth: maxWidth
-              });
-            });
+    function checkBingo(card, markedCells) {
+      // Prüfe Zeilen
+      for (let row = 0; row < gridSize; row++) {
+        let rowComplete = true;
+        for (let col = 0; col < gridSize; col++) {
+          const index = row * gridSize + col;
+          if (!markedCells[index]) {
+            rowComplete = false;
+            break;
           }
         }
+        if (rowComplete) return true;
+      }
 
-        // Fußzeile: X/XX
-        pdf.setFontSize(10);
-        pdf.setTextColor(100, 100, 100);
-        pdf.text(`${cardIndex + 1}/${cards.length}`, 105, 287, { align: 'center' });
-      });
+      // Prüfe Spalten
+      for (let col = 0; col < gridSize; col++) {
+        let colComplete = true;
+        for (let row = 0; row < gridSize; row++) {
+          const index = row * gridSize + col;
+          if (!markedCells[index]) {
+            colComplete = false;
+            break;
+          }
+        }
+        if (colComplete) return true;
+      }
 
-      pdf.save('weihnachts-bingo-karten.pdf');
-    }
-  </script>
-</body>
-</html>
+      // Prüfe Diagonale (links oben nach rechts unten)
+      let diag1Complete = true;
+      for (let i = 0; i < gridSize; i++) {
+        const index = i * gridSize + i;
+        if (!markedCells[index]) {
+          diag1Complete = false;
+          break;
+        }
+      }
+      if (diag1Complete) return true;
+
+      // Prüfe Diagonale (rechts oben nach links unten)
+      let diag2Complete = true;
+      for (let i = 0; i < gridSize; i++) {
+        const index = i * gridSize + (gridSize - 1 - i);
+        if (!markedCells[index]) {
+          diag2Complete = false;
+          break;
+        }
+      }
+      if (di
